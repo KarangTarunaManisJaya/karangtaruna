@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assets, documents, events, financeTransactions, members, news } from "../drizzle/schema";
-import { deleteMember, findMemberByName, getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMemberAccounts, listMembers, listNews, updateMember, updateMemberPosition } from "./db";
+import { deleteAsset, deleteDocument, deleteFinanceTransaction, deleteMember, findMemberByName, getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMemberAccounts, listMembers, listNews, updateAsset, updateDocument, updateFinanceTransaction, updateMember, updateMemberPosition } from "./db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
@@ -126,6 +126,8 @@ export const appRouter = router({
       await db.insert(documents).values({ ...input, ownerName: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateDocument(id, values); return { success: true }; }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteDocument(input.id); return { success: true }; }),
   }),
   assets: router({
     list: publicProcedure.query(async () => {
@@ -143,6 +145,8 @@ export const appRouter = router({
       await db.insert(assets).values(input);
       return { success: true };
     }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().min(2), category: z.string().min(2), quantity: z.number().min(1), condition: z.enum(["Baik", "Perlu perbaikan", "Rusak"]), location: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateAsset(id, values); return { success: true }; }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteAsset(input.id); return { success: true }; }),
   }),
   finance: router({
     summary: financeProcedure.query(async () => {
@@ -178,6 +182,8 @@ export const appRouter = router({
       await db.insert(financeTransactions).values({ transactionType: input.transactionType, category: input.category, description: input.description, amount: input.amount, transactionDate: input.transactionDate, paymentMethod: input.paymentMethod, notes: input.notes, receiptKey, receiptUrl, receiptName: input.receipt?.name, transactionCode: `TRX-${Date.now().toString().slice(-8)}`, createdBy: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
+    update: financeProcedure.input(z.object({ id: z.number().int().positive(), transactionType: z.enum(["Pemasukan", "Pengeluaran"]), category: z.string().min(2), description: z.string().min(3), amount: z.number().min(1), transactionDate: z.date(), paymentMethod: z.enum(["Tunai", "Transfer", "QRIS"]) })).mutation(async ({ input }) => { const { id, ...values } = input; await updateFinanceTransaction(id, values); return { success: true }; }),
+    delete: financeProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteFinanceTransaction(input.id); return { success: true }; }),
   }),
   events: router({
     list: publicProcedure.query(async () => { try { const result = await listEvents(); return result.length ? result : fallbackEvents; } catch { return fallbackEvents; } }),

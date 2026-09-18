@@ -131,6 +131,30 @@ export async function listAssets() {
   return db.select().from(assets).orderBy(desc(assets.createdAt));
 }
 
+export async function updateDocument(id: number, values: { title?: string; documentNumber?: string; description?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(documents).set(values).where(eq(documents.id, id));
+}
+
+export async function deleteDocument(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(documents).where(eq(documents.id, id));
+}
+
+export async function updateAsset(id: number, values: { name?: string; category?: string; quantity?: number; condition?: "Baik" | "Perlu perbaikan" | "Rusak"; location?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(assets).set(values).where(eq(assets.id, id));
+}
+
+export async function deleteAsset(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(assets).where(eq(assets.id, id));
+}
+
 export async function getDashboardCounts() {
   const [memberRows, documentRows, assetRows] = await Promise.all([listMembers(), listDocuments(), listAssets()]);
   return {
@@ -155,6 +179,18 @@ export async function getFinanceSummary() {
     transactionCount: rows.length,
     pendingCount: rows.filter(row => row.status === "Menunggu").length,
   };
+}
+
+export async function updateFinanceTransaction(id: number, values: { transactionType?: "Pemasukan" | "Pengeluaran"; category?: string; description?: string; amount?: number; transactionDate?: Date; paymentMethod?: "Tunai" | "Transfer" | "QRIS" }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(financeTransactions).set(values).where(eq(financeTransactions.id, id));
+}
+
+export async function deleteFinanceTransaction(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(financeTransactions).where(eq(financeTransactions.id, id));
 }
 
 export async function listEvents() {
