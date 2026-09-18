@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { cn } from "@/lib/utils";
-import { Archive, BarChart3, FileText, FolderKanban, LayoutDashboard, LogIn, LogOut, Menu, Package, Settings2, ShieldCheck, Users, X } from "lucide-react";
+import { Archive, BarChart3, DollarSign, FileText, FolderKanban, LayoutDashboard, LogIn, LogOut, Menu, Package, Settings2, ShieldCheck, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "./ui/button";
@@ -17,6 +17,7 @@ const menuGroups = [
     { icon: FolderKanban, label: "Proposal", path: "/proposals" },
     { icon: BarChart3, label: "Laporan", path: "/reports" },
     { icon: Package, label: "Aset organisasi", path: "/assets" },
+    { icon: DollarSign, label: "Keuangan", path: "/finance" },
   ]},
   { label: "Pengaturan", items: [
     { icon: ShieldCheck, label: "Akses pengguna", path: "/users" },

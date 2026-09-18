@@ -29,4 +29,13 @@ describe("karang taruna workspace procedures", () => {
     const caller = appRouter.createCaller(createPublicContext());
     await expect(caller.members.create({ name: "Test User", gender: "Laki-laki", position: "Anggota" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
+
+  it("returns finance totals and protects new transactions", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const summary = await caller.finance.summary();
+    const transactions = await caller.finance.list();
+    expect(summary.balance).toBe(summary.income - summary.expense);
+    expect(transactions.length).toBeGreaterThan(0);
+    await expect(caller.finance.create({ transactionType: "Pemasukan", category: "Iuran", description: "Iuran test", amount: 100000, transactionDate: new Date(), paymentMethod: "Tunai" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
 });

@@ -2,8 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { assets, documents, members } from "../drizzle/schema";
-import { getDashboardCounts, getDb, listAssets, listDocuments, listMembers } from "./db";
+import { assets, documents, financeTransactions, members } from "../drizzle/schema";
+import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listFinanceTransactions, listMembers } from "./db";
 import { z } from "zod";
 
 const fallbackMembers = [
@@ -22,6 +22,12 @@ const fallbackAssets = [
   { id: 1, name: "Tenda lipat 3x3", category: "Perlengkapan acara", quantity: 4, condition: "Baik", location: "Sekretariat" },
   { id: 2, name: "Sound system portable", category: "Elektronik", quantity: 1, condition: "Perlu perbaikan", location: "Sekretariat" },
   { id: 3, name: "Kursi plastik", category: "Perlengkapan acara", quantity: 80, condition: "Baik", location: "Gudang RW 04" },
+];
+const fallbackTransactions = [
+  { id: 1, transactionCode: "TRX-240918-01", transactionType: "Pemasukan", category: "Iuran anggota", description: "Iuran rutin September 2026", amount: 2500000, transactionDate: new Date("2026-09-05"), paymentMethod: "Transfer", status: "Terverifikasi", createdBy: "Andi Pratama" },
+  { id: 2, transactionCode: "TRX-240916-02", transactionType: "Pengeluaran", category: "Kegiatan", description: "Pembelian konsumsi rapat koordinasi", amount: 475000, transactionDate: new Date("2026-09-16"), paymentMethod: "Tunai", status: "Terverifikasi", createdBy: "Andi Pratama" },
+  { id: 3, transactionCode: "TRX-240912-03", transactionType: "Pemasukan", category: "Bantuan desa", description: "Dukungan kegiatan Festival Kemerdekaan", amount: 5000000, transactionDate: new Date("2026-09-12"), paymentMethod: "Transfer", status: "Terverifikasi", createdBy: "Rizky Maulana" },
+  { id: 4, transactionCode: "TRX-240910-04", transactionType: "Pengeluaran", category: "Operasional", description: "Transportasi koordinasi lapangan", amount: 350000, transactionDate: new Date("2026-09-10"), paymentMethod: "QRIS", status: "Menunggu", createdBy: "Nadia Putri" },
 ];
 
 export const appRouter = router({
@@ -93,6 +99,34 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return { success: true, demo: true };
       await db.insert(assets).values(input);
+      return { success: true };
+    }),
+  }),
+  finance: router({
+    summary: publicProcedure.query(async () => {
+      try {
+        const result = await getFinanceSummary();
+        if (result.transactionCount) return { ...result, balance: result.income - result.expense };
+      } catch (error) {
+        console.warn("[Finance] using fallback summary", error);
+      }
+      const income = fallbackTransactions.filter(row => row.transactionType === "Pemasukan").reduce((total, row) => total + row.amount, 0);
+      const expense = fallbackTransactions.filter(row => row.transactionType === "Pengeluaran").reduce((total, row) => total + row.amount, 0);
+      return { income, expense, balance: income - expense, transactionCount: fallbackTransactions.length, pendingCount: 1 };
+    }),
+    list: publicProcedure.query(async () => {
+      try {
+        const result = await listFinanceTransactions();
+        return result.length ? result : fallbackTransactions;
+      } catch (error) {
+        console.warn("[Finance] using fallback list", error);
+        return fallbackTransactions;
+      }
+    }),
+    create: protectedProcedure.input(z.object({ transactionType: z.enum(["Pemasukan", "Pengeluaran"]), category: z.string().min(2), description: z.string().min(3), amount: z.number().min(1), transactionDate: z.date(), paymentMethod: z.enum(["Tunai", "Transfer", "QRIS"]), notes: z.string().optional() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) return { success: true, demo: true };
+      await db.insert(financeTransactions).values({ ...input, transactionCode: `TRX-${Date.now().toString().slice(-8)}`, createdBy: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
   }),

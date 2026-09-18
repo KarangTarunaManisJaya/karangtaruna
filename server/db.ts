@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { assets, documents, InsertUser, members, users } from "../drizzle/schema";
+import { assets, documents, financeTransactions, InsertUser, members, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -78,5 +78,21 @@ export async function getDashboardCounts() {
     documentCount: documentRows.length,
     assetCount: assetRows.reduce((total, asset) => total + asset.quantity, 0),
     activeDocumentCount: documentRows.filter(document => document.status === "Diproses").length,
+  };
+}
+
+export async function listFinanceTransactions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(financeTransactions).orderBy(desc(financeTransactions.transactionDate));
+}
+
+export async function getFinanceSummary() {
+  const rows = await listFinanceTransactions();
+  return {
+    income: rows.filter(row => row.transactionType === "Pemasukan").reduce((total, row) => total + row.amount, 0),
+    expense: rows.filter(row => row.transactionType === "Pengeluaran").reduce((total, row) => total + row.amount, 0),
+    transactionCount: rows.length,
+    pendingCount: rows.filter(row => row.status === "Menunggu").length,
   };
 }

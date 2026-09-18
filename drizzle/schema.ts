@@ -51,6 +51,22 @@ export const assets = mysqlTable("assets", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const financeTransactions = mysqlTable("financeTransactions", {
+  id: int("id").autoincrement().primaryKey(),
+  transactionCode: varchar("transactionCode", { length: 40 }).notNull().unique(),
+  transactionType: mysqlEnum("transactionType", ["Pemasukan", "Pengeluaran"]).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  description: varchar("description", { length: 240 }).notNull(),
+  amount: int("amount").notNull(),
+  transactionDate: timestamp("transactionDate").defaultNow().notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", ["Tunai", "Transfer", "QRIS"]).default("Tunai").notNull(),
+  status: mysqlEnum("status", ["Terverifikasi", "Menunggu"]).default("Terverifikasi").notNull(),
+  createdBy: varchar("createdBy", { length: 160 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Member = typeof members.$inferSelect;
@@ -59,3 +75,5 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = typeof documents.$inferInsert;
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
+export type FinanceTransaction = typeof financeTransactions.$inferSelect;
+export type InsertFinanceTransaction = typeof financeTransactions.$inferInsert;
