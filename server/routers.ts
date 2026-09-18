@@ -1,28 +1,101 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { assets, documents, members } from "../drizzle/schema";
+import { getDashboardCounts, getDb, listAssets, listDocuments, listMembers } from "./db";
+import { z } from "zod";
+
+const fallbackMembers = [
+  { id: 1, memberCode: "MJ-001", name: "Rizky Maulana", gender: "Laki-laki", position: "Ketua", status: "Aktif", phone: "0812 3456 7890", address: "Dusun Manis Jaya" },
+  { id: 2, memberCode: "MJ-002", name: "Siti Nurhaliza", gender: "Perempuan", position: "Sekretaris", status: "Aktif", phone: "0813 2288 1940", address: "Dusun Manis Jaya" },
+  { id: 3, memberCode: "MJ-003", name: "Andi Pratama", gender: "Laki-laki", position: "Bendahara", status: "Aktif", phone: "0821 9034 1122", address: "Dusun Manis Jaya" },
+  { id: 4, memberCode: "MJ-004", name: "Nadia Putri", gender: "Perempuan", position: "Koordinator Kegiatan", status: "Aktif", phone: "0857 1100 2931", address: "Dusun Manis Jaya" },
+  { id: 5, memberCode: "MJ-005", name: "Fajar Hidayat", gender: "Laki-laki", position: "Anggota", status: "Aktif", phone: "0896 4432 1108", address: "Dusun Manis Jaya" },
+];
+const fallbackDocuments = [
+  { id: 1, documentType: "Proposal", title: "Festival Kemerdekaan Manis Jaya", documentNumber: "PRP/006/MJ/IX/2026", status: "Diproses", ownerName: "Nadia Putri", createdAt: new Date("2026-09-14") },
+  { id: 2, documentType: "Surat", title: "Surat Permohonan Fasilitas Lapangan", documentNumber: "SKT/014/MJ/IX/2026", status: "Disetujui", ownerName: "Siti Nurhaliza", createdAt: new Date("2026-09-12") },
+  { id: 3, documentType: "Laporan", title: "Laporan Kegiatan Kerja Bakti", documentNumber: "LAP/003/MJ/IX/2026", status: "Arsip", ownerName: "Rizky Maulana", createdAt: new Date("2026-09-09") },
+];
+const fallbackAssets = [
+  { id: 1, name: "Tenda lipat 3x3", category: "Perlengkapan acara", quantity: 4, condition: "Baik", location: "Sekretariat" },
+  { id: 2, name: "Sound system portable", category: "Elektronik", quantity: 1, condition: "Perlu perbaikan", location: "Sekretariat" },
+  { id: 3, name: "Kursi plastik", category: "Perlengkapan acara", quantity: 80, condition: "Baik", location: "Gudang RW 04" },
+];
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
-
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  dashboard: router({
+    summary: publicProcedure.query(async () => {
+      try {
+        const result = await getDashboardCounts();
+        if (result.memberCount || result.documentCount || result.assetCount) return result;
+      } catch (error) {
+        console.warn("[Dashboard] using fallback summary", error);
+      }
+      return { memberCount: 128, documentCount: 24, assetCount: 86, activeDocumentCount: 6 };
+    }),
+  }),
+  members: router({
+    list: publicProcedure.query(async () => {
+      try {
+        const result = await listMembers();
+        return result.length ? result : fallbackMembers;
+      } catch (error) {
+        console.warn("[Members] using fallback list", error);
+        return fallbackMembers;
+      }
+    }),
+    create: protectedProcedure.input(z.object({ name: z.string().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.string().default("Anggota"), phone: z.string().optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { success: true, demo: true };
+      await db.insert(members).values({ memberCode: `MJ-${Date.now().toString().slice(-4)}`, name: input.name, gender: input.gender, position: input.position, phone: input.phone });
+      return { success: true };
+    }),
+  }),
+  documents: router({
+    list: publicProcedure.query(async () => {
+      try {
+        const result = await listDocuments();
+        return result.length ? result : fallbackDocuments;
+      } catch (error) {
+        console.warn("[Documents] using fallback list", error);
+        return fallbackDocuments;
+      }
+    }),
+    create: protectedProcedure.input(z.object({ documentType: z.enum(["Surat", "Proposal", "Laporan"]), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) return { success: true, demo: true };
+      await db.insert(documents).values({ ...input, ownerName: ctx.user.name ?? "Pengurus" });
+      return { success: true };
+    }),
+  }),
+  assets: router({
+    list: publicProcedure.query(async () => {
+      try {
+        const result = await listAssets();
+        return result.length ? result : fallbackAssets;
+      } catch (error) {
+        console.warn("[Assets] using fallback list", error);
+        return fallbackAssets;
+      }
+    }),
+    create: protectedProcedure.input(z.object({ name: z.string().min(2), category: z.string().min(2), quantity: z.number().min(1), condition: z.enum(["Baik", "Perlu perbaikan", "Rusak"]), location: z.string().optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { success: true, demo: true };
+      await db.insert(assets).values(input);
+      return { success: true };
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
