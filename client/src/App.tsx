@@ -12,9 +12,11 @@ import { ActivitiesPage, NewsPage } from "./pages/Activities";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ShieldAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import MemberLoginPage from "./pages/MemberLogin";
 
 function Router() {
   return <Switch>
+    <Route path="/login" component={MemberLoginPage} />
     <Route path="/" component={Home} />
     <Route path="/members" component={MembersPage} />
     <Route path="/letters"><ManagementGate><DocumentsPage type="Surat" /></ManagementGate></Route>

@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD `passwordHash` varchar(180);

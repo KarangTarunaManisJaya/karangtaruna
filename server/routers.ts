@@ -3,17 +3,18 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assets, documents, events, financeTransactions, members, news } from "../drizzle/schema";
-import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMembers, listNews, listUsers, updateUserRole } from "./db";
+import { findMemberByName, getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMemberAccounts, listMembers, listNews, updateMemberPosition } from "./db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
+import { createMemberSession, hashMemberPassword, MEMBER_SESSION_COOKIE, verifyMemberPassword } from "./memberAuth";
 
 const financeProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (!["admin", "treasurer", "chairman", "vice_chair"].includes(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Akses keuangan hanya untuk Administrator, Bendahara, Ketua, dan Wakil Ketua." });
   return next();
 });
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Pengaturan jabatan hanya dapat diubah Administrator." });
+  if (!["admin", "chairman"].includes(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Pengaturan jabatan hanya dapat diubah Administrator atau Ketua." });
   return next();
 });
 
@@ -58,12 +59,19 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(MEMBER_SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
+    }),
+    memberLogin: publicProcedure.input(z.object({ name: z.string().min(2), password: z.string().min(6) })).mutation(async ({ input, ctx }) => {
+      const member = await findMemberByName(input.name.trim());
+      if (!member || member.status !== "Aktif" || !verifyMemberPassword(input.password, member.passwordHash)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Nama anggota atau password salah." });
+      ctx.res.cookie(MEMBER_SESSION_COOKIE, createMemberSession(member.id), { ...getSessionCookieOptions(ctx.req), maxAge: 1000 * 60 * 60 * 24 * 7 });
+      return { success: true, name: member.name } as const;
     }),
   }),
   users: router({
-    list: adminProcedure.query(async () => listUsers()),
-    setRole: adminProcedure.input(z.object({ id: z.number().int().positive(), role: z.enum(["user", "admin", "chairman", "vice_chair", "treasurer", "secretary", "member"]) })).mutation(async ({ input }) => { await updateUserRole(input.id, input.role); return { success: true }; }),
+    list: adminProcedure.query(async () => listMemberAccounts()),
+    setRole: adminProcedure.input(z.object({ id: z.number().int().positive(), role: z.enum(["chairman", "vice_chair", "treasurer", "secretary", "member"]) })).mutation(async ({ input }) => { await updateMemberPosition(input.id, input.role); return { success: true }; }),
   }),
   dashboard: router({
     summary: publicProcedure.query(async () => {
@@ -86,10 +94,10 @@ export const appRouter = router({
         return fallbackMembers;
       }
     }),
-    create: protectedProcedure.input(z.object({ name: z.string().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.string().default("Anggota"), phone: z.string().optional() })).mutation(async ({ input }) => {
+    create: protectedProcedure.input(z.object({ name: z.string().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.enum(["Anggota", "Bendahara", "Sekretaris", "Wakil Ketua", "Ketua"]), password: z.string().min(6), phone: z.string().optional() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { success: true, demo: true };
-      await db.insert(members).values({ memberCode: `MJ-${Date.now().toString().slice(-4)}`, name: input.name, gender: input.gender, position: input.position, phone: input.phone });
+      await db.insert(members).values({ memberCode: `MJ-${Date.now().toString().slice(-4)}`, name: input.name, gender: input.gender, position: input.position, passwordHash: hashMemberPassword(input.password), phone: input.phone });
       return { success: true };
     }),
   }),

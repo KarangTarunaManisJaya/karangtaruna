@@ -21,6 +21,7 @@ export const members = mysqlTable("members", {
   email: varchar("email", { length: 320 }),
   address: text("address"),
   position: varchar("position", { length: 80 }).default("Anggota").notNull(),
+  passwordHash: varchar("passwordHash", { length: 180 }),
   status: mysqlEnum("status", ["Aktif", "Tidak aktif"]).default("Aktif").notNull(),
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
