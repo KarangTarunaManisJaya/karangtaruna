@@ -107,6 +107,18 @@ export async function findMemberByName(name: string) {
   return result[0];
 }
 
+export async function updateMember(id: number, values: { name?: string; gender?: "Laki-laki" | "Perempuan"; position?: "Anggota" | "Bendahara" | "Sekretaris" | "Wakil Ketua" | "Ketua"; phone?: string; passwordHash?: string }) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(members).set(values).where(eq(members.id, id));
+}
+
+export async function deleteMember(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(members).where(eq(members.id, id));
+}
+
 export async function listDocuments() {
   const db = await getDb();
   if (!db) return [];

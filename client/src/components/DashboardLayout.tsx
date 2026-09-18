@@ -30,11 +30,11 @@ const menuGroups = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
-  const displayName = user?.name || "Pengurus Manis Jaya";
+  const displayName = user?.loginMethod === "member-password" ? (user.name || "Anggota") : user ? "Administrator Manis Jaya" : "Pengurus Manis Jaya";
   const initials = displayName.split(" ").map(part => part[0]).slice(0, 2).join("").toUpperCase();
   return (
     <SidebarProvider open={open} onOpenChange={setOpen}>
-      <DashboardSidebar displayName={displayName} initials={initials} userEmail={user?.email || "Mode pratinjau"} userRole={user?.role} onLogout={logout} />
+      <DashboardSidebar displayName={displayName} initials={initials} userEmail={user?.loginMethod === "member-password" ? "Akses anggota" : user ? "Akses pengurus" : "Mode pratinjau"} userRole={user?.role} onLogout={logout} />
       <SidebarInset className="bg-[#f8f8f6]">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#e8e7e2] bg-[#f8f8f6]/90 px-5 backdrop-blur-xl lg:px-8">
           <div className="flex items-center gap-3">

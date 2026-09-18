@@ -38,9 +38,7 @@ async function authenticateMember(req: CreateExpressContextOptions["req"]): Prom
 
 export async function createContext(opts: CreateExpressContextOptions): Promise<TrpcContext> {
   let user: User | null = null;
-  try { user = await sdk.authenticateRequest(opts.req); } catch { user = null; }
-  if (!user) {
-    try { user = await authenticateMember(opts.req); } catch { user = null; }
-  }
+  try { user = await authenticateMember(opts.req); } catch { user = null; }
+  if (!user) try { user = await sdk.authenticateRequest(opts.req); } catch { user = null; }
   return { user, req: opts.req, res: opts.res };
 }

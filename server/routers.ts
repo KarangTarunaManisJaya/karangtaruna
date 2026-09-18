@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assets, documents, events, financeTransactions, members, news } from "../drizzle/schema";
-import { findMemberByName, getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMemberAccounts, listMembers, listNews, updateMemberPosition } from "./db";
+import { deleteMember, findMemberByName, getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMemberAccounts, listMembers, listNews, updateMember, updateMemberPosition } from "./db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
@@ -94,12 +94,21 @@ export const appRouter = router({
         return fallbackMembers;
       }
     }),
-    create: protectedProcedure.input(z.object({ name: z.string().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.enum(["Anggota", "Bendahara", "Sekretaris", "Wakil Ketua", "Ketua"]), password: z.string().min(6), phone: z.string().optional() })).mutation(async ({ input }) => {
+    create: protectedProcedure.input(z.object({ name: z.string().trim().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.enum(["Anggota", "Bendahara", "Sekretaris", "Wakil Ketua", "Ketua"]), password: z.string().min(6), phone: z.string().optional() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) return { success: true, demo: true };
+      if (await findMemberByName(input.name)) throw new TRPCError({ code: "CONFLICT", message: "Nama anggota sudah terdaftar. Gunakan nama yang berbeda." });
       await db.insert(members).values({ memberCode: `MJ-${Date.now().toString().slice(-4)}`, name: input.name, gender: input.gender, position: input.position, passwordHash: hashMemberPassword(input.password), phone: input.phone });
       return { success: true };
     }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().trim().min(2), gender: z.enum(["Laki-laki", "Perempuan"]), position: z.enum(["Anggota", "Bendahara", "Sekretaris", "Wakil Ketua", "Ketua"]), password: z.string().min(6).optional(), phone: z.string().optional() })).mutation(async ({ input }) => {
+      const existing = await findMemberByName(input.name);
+      if (existing && existing.id !== input.id) throw new TRPCError({ code: "CONFLICT", message: "Nama anggota sudah terdaftar. Gunakan nama yang berbeda." });
+      const { id, password, ...values } = input;
+      await updateMember(id, { ...values, ...(password ? { passwordHash: hashMemberPassword(password) } : {}) });
+      return { success: true };
+    }),
+    delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteMember(input.id); return { success: true }; }),
   }),
   documents: router({
     list: publicProcedure.query(async () => {
