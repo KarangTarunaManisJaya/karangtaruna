@@ -2,9 +2,16 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { assets, documents, financeTransactions, members } from "../drizzle/schema";
-import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listFinanceTransactions, listMembers } from "./db";
+import { assets, documents, events, financeTransactions, members, news } from "../drizzle/schema";
+import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMembers, listNews } from "./db";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { storagePut } from "./storage";
+
+const financeProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin" && ctx.user.role !== "treasurer") throw new TRPCError({ code: "FORBIDDEN", message: "Akses keuangan hanya untuk Administrator dan Bendahara." });
+  return next();
+});
 
 const fallbackMembers = [
   { id: 1, memberCode: "MJ-001", name: "Rizky Maulana", gender: "Laki-laki", position: "Ketua", status: "Aktif", phone: "0812 3456 7890", address: "Dusun Manis Jaya" },
@@ -28,6 +35,16 @@ const fallbackTransactions = [
   { id: 2, transactionCode: "TRX-240916-02", transactionType: "Pengeluaran", category: "Kegiatan", description: "Pembelian konsumsi rapat koordinasi", amount: 475000, transactionDate: new Date("2026-09-16"), paymentMethod: "Tunai", status: "Terverifikasi", createdBy: "Andi Pratama" },
   { id: 3, transactionCode: "TRX-240912-03", transactionType: "Pemasukan", category: "Bantuan desa", description: "Dukungan kegiatan Festival Kemerdekaan", amount: 5000000, transactionDate: new Date("2026-09-12"), paymentMethod: "Transfer", status: "Terverifikasi", createdBy: "Rizky Maulana" },
   { id: 4, transactionCode: "TRX-240910-04", transactionType: "Pengeluaran", category: "Operasional", description: "Transportasi koordinasi lapangan", amount: 350000, transactionDate: new Date("2026-09-10"), paymentMethod: "QRIS", status: "Menunggu", createdBy: "Nadia Putri" },
+];
+const fallbackEvents = [
+  { id: 1, title: "Rapat koordinasi Festival Kemerdekaan", eventDate: new Date("2026-09-20T16:00:00"), location: "Sekretariat", category: "Rapat", status: "Terjadwal", description: "Finalisasi pembagian tugas dan kebutuhan kegiatan." },
+  { id: 2, title: "Kerja bakti lingkungan", eventDate: new Date("2026-09-22T07:00:00"), location: "Lapangan RW 04", category: "Sosial", status: "Terjadwal", description: "Kerja bakti rutin bersama warga." },
+  { id: 3, title: "Festival Kemerdekaan Manis Jaya", eventDate: new Date("2026-09-28T19:00:00"), location: "Lapangan desa", category: "Kegiatan", status: "Terjadwal", description: "Malam puncak kegiatan kemerdekaan." },
+];
+const fallbackNews = [
+  { id: 1, title: "Manis Jaya bersiap menyambut Festival Kemerdekaan", excerpt: "Persiapan kegiatan memasuki tahap final dengan kolaborasi pengurus dan warga.", content: "Pengurus Karang Taruna Manis Jaya terus mematangkan persiapan Festival Kemerdekaan.", category: "Kegiatan", publishedAt: new Date("2026-09-17"), authorName: "Rizky Maulana", status: "Terbit" },
+  { id: 2, title: "Kerja bakti rutin kembali digelar akhir pekan ini", excerpt: "Ajak warga untuk menjaga lingkungan tetap bersih dan nyaman.", content: "Kegiatan kerja bakti akan dilaksanakan pada Minggu pagi di Lapangan RW 04.", category: "Sosial", publishedAt: new Date("2026-09-14"), authorName: "Siti Nurhaliza", status: "Terbit" },
+  { id: 3, title: "Laporan kegiatan olahraga pemuda telah terbit", excerpt: "Dokumentasi dan hasil kegiatan olahraga bulan ini tersedia di workspace.", content: "Laporan kegiatan olahraga pemuda dapat dibaca oleh seluruh anggota.", category: "Berita", publishedAt: new Date("2026-09-10"), authorName: "Nadia Putri", status: "Terbit" },
 ];
 
 export const appRouter = router({
@@ -103,7 +120,7 @@ export const appRouter = router({
     }),
   }),
   finance: router({
-    summary: publicProcedure.query(async () => {
+    summary: financeProcedure.query(async () => {
       try {
         const result = await getFinanceSummary();
         if (result.transactionCount) return { ...result, balance: result.income - result.expense };
@@ -114,7 +131,7 @@ export const appRouter = router({
       const expense = fallbackTransactions.filter(row => row.transactionType === "Pengeluaran").reduce((total, row) => total + row.amount, 0);
       return { income, expense, balance: income - expense, transactionCount: fallbackTransactions.length, pendingCount: 1 };
     }),
-    list: publicProcedure.query(async () => {
+    list: financeProcedure.query(async () => {
       try {
         const result = await listFinanceTransactions();
         return result.length ? result : fallbackTransactions;
@@ -123,12 +140,27 @@ export const appRouter = router({
         return fallbackTransactions;
       }
     }),
-    create: protectedProcedure.input(z.object({ transactionType: z.enum(["Pemasukan", "Pengeluaran"]), category: z.string().min(2), description: z.string().min(3), amount: z.number().min(1), transactionDate: z.date(), paymentMethod: z.enum(["Tunai", "Transfer", "QRIS"]), notes: z.string().optional() })).mutation(async ({ input, ctx }) => {
+    create: financeProcedure.input(z.object({ transactionType: z.enum(["Pemasukan", "Pengeluaran"]), category: z.string().min(2), description: z.string().min(3), amount: z.number().min(1), transactionDate: z.date(), paymentMethod: z.enum(["Tunai", "Transfer", "QRIS"]), notes: z.string().optional(), receipt: z.object({ name: z.string(), type: z.string(), data: z.string() }).optional() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { success: true, demo: true };
-      await db.insert(financeTransactions).values({ ...input, transactionCode: `TRX-${Date.now().toString().slice(-8)}`, createdBy: ctx.user.name ?? "Pengurus" });
+      let receiptKey: string | undefined;
+      let receiptUrl: string | undefined;
+      if (input.receipt) {
+        const uploaded = await storagePut(`finance/${ctx.user.id}/${input.receipt.name}`, Buffer.from(input.receipt.data, "base64"), input.receipt.type);
+        receiptKey = uploaded.key;
+        receiptUrl = uploaded.url;
+      }
+      await db.insert(financeTransactions).values({ transactionType: input.transactionType, category: input.category, description: input.description, amount: input.amount, transactionDate: input.transactionDate, paymentMethod: input.paymentMethod, notes: input.notes, receiptKey, receiptUrl, receiptName: input.receipt?.name, transactionCode: `TRX-${Date.now().toString().slice(-8)}`, createdBy: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
+  }),
+  events: router({
+    list: publicProcedure.query(async () => { try { const result = await listEvents(); return result.length ? result : fallbackEvents; } catch { return fallbackEvents; } }),
+    create: protectedProcedure.input(z.object({ title: z.string().min(3), eventDate: z.date(), location: z.string().optional(), category: z.string().min(2), description: z.string().optional() })).mutation(async ({ input, ctx }) => { const db = await getDb(); if (!db) return { success: true, demo: true }; await db.insert(events).values({ ...input, createdBy: ctx.user.name ?? "Pengurus" }); return { success: true }; }),
+  }),
+  news: router({
+    list: publicProcedure.query(async () => { try { const result = await listNews(); return result.length ? result : fallbackNews; } catch { return fallbackNews; } }),
+    create: protectedProcedure.input(z.object({ title: z.string().min(3), excerpt: z.string().min(3), content: z.string().min(3), category: z.string().min(2) })).mutation(async ({ input, ctx }) => { const db = await getDb(); if (!db) return { success: true, demo: true }; await db.insert(news).values({ ...input, authorName: ctx.user.name ?? "Pengurus" }); return { success: true }; }),
   }),
 });
 

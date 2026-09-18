@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home, { AssetsPage, DocumentsPage, MembersPage, SettingsPage, UsersPage } from "./pages/Home";
 import FinancePage from "./pages/Finance";
 import AccessPage from "./pages/Access";
+import { ActivitiesPage, NewsPage } from "./pages/Activities";
 
 function Router() {
   return <Switch>
@@ -18,6 +19,8 @@ function Router() {
     <Route path="/reports"><DocumentsPage type="Laporan" /></Route>
     <Route path="/assets" component={AssetsPage} />
     <Route path="/finance" component={FinancePage} />
+    <Route path="/activities" component={ActivitiesPage} />
+    <Route path="/news" component={NewsPage} />
     <Route path="/users" component={AccessPage} />
     <Route path="/settings" component={SettingsPage} />
     <Route path="/404" component={NotFound} />

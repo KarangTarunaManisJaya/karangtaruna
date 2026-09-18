@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { cn } from "@/lib/utils";
-import { Archive, BarChart3, DollarSign, FileText, FolderKanban, LayoutDashboard, LogIn, LogOut, Menu, Package, Settings2, ShieldCheck, Users, X } from "lucide-react";
+import { Archive, BarChart3, CalendarDays, DollarSign, FileText, FolderKanban, LayoutDashboard, LogIn, LogOut, Menu, Newspaper, Package, Settings2, ShieldCheck, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "./ui/button";
@@ -17,7 +17,9 @@ const menuGroups = [
     { icon: FolderKanban, label: "Proposal", path: "/proposals" },
     { icon: BarChart3, label: "Laporan", path: "/reports" },
     { icon: Package, label: "Aset organisasi", path: "/assets" },
-    { icon: DollarSign, label: "Keuangan", path: "/finance" },
+    { icon: DollarSign, label: "Keuangan", path: "/finance", financeOnly: true },
+    { icon: CalendarDays, label: "Jadwal kegiatan", path: "/activities" },
+    { icon: Newspaper, label: "Berita kegiatan", path: "/news" },
   ]},
   { label: "Pengaturan", items: [
     { icon: ShieldCheck, label: "Akses pengguna", path: "/users" },
@@ -32,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = displayName.split(" ").map(part => part[0]).slice(0, 2).join("").toUpperCase();
   return (
     <SidebarProvider open={open} onOpenChange={setOpen}>
-      <DashboardSidebar displayName={displayName} initials={initials} userEmail={user?.email || "Mode pratinjau"} onLogout={logout} />
+      <DashboardSidebar displayName={displayName} initials={initials} userEmail={user?.email || "Mode pratinjau"} userRole={user?.role} onLogout={logout} />
       <SidebarInset className="bg-[#f8f8f6]">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#e8e7e2] bg-[#f8f8f6]/90 px-5 backdrop-blur-xl lg:px-8">
           <div className="flex items-center gap-3">
@@ -55,7 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
-function DashboardSidebar({ displayName, initials, userEmail, onLogout }: { displayName: string; initials: string; userEmail: string; onLogout: () => void }) {
+function DashboardSidebar({ displayName, initials, userEmail, userRole, onLogout }: { displayName: string; initials: string; userEmail: string; userRole?: string; onLogout: () => void }) {
   const [location, setLocation] = useLocation();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
@@ -69,7 +71,7 @@ function DashboardSidebar({ displayName, initials, userEmail, onLogout }: { disp
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 py-3">
-        {menuGroups.map(group => <div key={group.label} className="mb-6"><p className={cn("px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9da39c]", collapsed && "text-center text-[8px]")}>{collapsed ? "•" : group.label}</p><SidebarMenu>{group.items.map(item => { const active = location === item.path; return <SidebarMenuItem key={item.path}><SidebarMenuButton isActive={active} onClick={() => navigate(item.path)} tooltip={item.label} className={cn("h-10 rounded-xl px-3 text-[#697169] hover:bg-white/80 hover:text-[#243b32]", active && "bg-white font-semibold text-[#243b32] shadow-[0_3px_12px_rgba(36,59,50,0.07)]") }><item.icon className={cn("h-[17px] w-[17px]", active && "text-[#ed8c6f]")} /><span>{item.label}</span>{item.path === "/letters" && <span className="ml-auto rounded-full bg-[#f8d8cc] px-1.5 py-0.5 text-[9px] font-bold text-[#9b523c]">3</span>}</SidebarMenuButton></SidebarMenuItem>; })}</SidebarMenu></div>)}
+        {menuGroups.map(group => <div key={group.label} className="mb-6"><p className={cn("px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9da39c]", collapsed && "text-center text-[8px]")}>{collapsed ? "•" : group.label}</p><SidebarMenu>{group.items.filter(item => !item.financeOnly || userRole === "admin" || userRole === "treasurer").map(item => { const active = location === item.path; return <SidebarMenuItem key={item.path}><SidebarMenuButton isActive={active} onClick={() => navigate(item.path)} tooltip={item.label} className={cn("h-10 rounded-xl px-3 text-[#697169] hover:bg-white/80 hover:text-[#243b32]", active && "bg-white font-semibold text-[#243b32] shadow-[0_3px_12px_rgba(36,59,50,0.07)]") }><item.icon className={cn("h-[17px] w-[17px]", active && "text-[#ed8c6f]")} /><span>{item.label}</span>{item.path === "/letters" && <span className="ml-auto rounded-full bg-[#f8d8cc] px-1.5 py-0.5 text-[9px] font-bold text-[#9b523c]">3</span>}</SidebarMenuButton></SidebarMenuItem>; })}</SidebarMenu></div>)}
       </SidebarContent>
       <SidebarFooter className="p-3">
         {!collapsed && <div className="mb-3 rounded-2xl bg-[#243b32] p-3.5 text-white"><div className="mb-2 flex items-center gap-2"><Archive className="h-4 w-4 text-[#f2b49b]" /><span className="text-xs font-semibold">Ruang kolaborasi</span></div><p className="text-[11px] leading-4 text-white/60">Kelola kegiatan desa dengan lebih rapi dan transparan.</p></div>}

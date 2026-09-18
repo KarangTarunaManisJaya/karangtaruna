@@ -10,6 +10,23 @@ function createPublicContext(): TrpcContext {
   };
 }
 
+function createUserContext(role: "admin" | "treasurer" | "user"): TrpcContext {
+  return {
+    ...createPublicContext(),
+    user: {
+      id: 1,
+      openId: "finance-user",
+      name: "Finance User",
+      email: "finance@example.com",
+      loginMethod: "manus",
+      role,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
+  };
+}
+
 describe("karang taruna workspace procedures", () => {
   it("returns a dashboard summary with the expected counters", async () => {
     const caller = appRouter.createCaller(createPublicContext());
@@ -32,10 +49,22 @@ describe("karang taruna workspace procedures", () => {
 
   it("returns finance totals and protects new transactions", async () => {
     const caller = appRouter.createCaller(createPublicContext());
-    const summary = await caller.finance.summary();
-    const transactions = await caller.finance.list();
-    expect(summary.balance).toBe(summary.income - summary.expense);
-    expect(transactions.length).toBeGreaterThan(0);
+    await expect(caller.finance.summary()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(caller.finance.create({ transactionType: "Pemasukan", category: "Iuran", description: "Iuran test", amount: 100000, transactionDate: new Date(), paymentMethod: "Tunai" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    const adminCaller = appRouter.createCaller(createUserContext("admin"));
+    const summary = await adminCaller.finance.summary();
+    expect(summary.balance).toBe(summary.income - summary.expense);
+    const memberCaller = appRouter.createCaller(createUserContext("user"));
+    await expect(memberCaller.finance.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("returns public activity schedules and community news", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const events = await caller.events.list();
+    const news = await caller.news.list();
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0]).toHaveProperty("eventDate");
+    expect(news.length).toBeGreaterThan(0);
+    expect(news[0]).toHaveProperty("excerpt");
   });
 });

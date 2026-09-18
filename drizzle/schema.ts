@@ -6,7 +6,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "treasurer", "secretary", "member"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -63,6 +63,35 @@ export const financeTransactions = mysqlTable("financeTransactions", {
   status: mysqlEnum("status", ["Terverifikasi", "Menunggu"]).default("Terverifikasi").notNull(),
   createdBy: varchar("createdBy", { length: 160 }),
   notes: text("notes"),
+  receiptKey: varchar("receiptKey", { length: 255 }),
+  receiptUrl: varchar("receiptUrl", { length: 500 }),
+  receiptName: varchar("receiptName", { length: 180 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const events = mysqlTable("events", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 180 }).notNull(),
+  eventDate: timestamp("eventDate").notNull(),
+  location: varchar("location", { length: 160 }),
+  category: varchar("category", { length: 80 }).default("Kegiatan").notNull(),
+  status: mysqlEnum("status", ["Terjadwal", "Selesai", "Dibatalkan"]).default("Terjadwal").notNull(),
+  description: text("description"),
+  createdBy: varchar("createdBy", { length: 160 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const news = mysqlTable("news", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  excerpt: varchar("excerpt", { length: 300 }).notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 80 }).default("Kegiatan").notNull(),
+  publishedAt: timestamp("publishedAt").defaultNow().notNull(),
+  authorName: varchar("authorName", { length: 160 }),
+  status: mysqlEnum("status", ["Terbit", "Draft"]).default("Terbit").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -77,3 +106,7 @@ export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
 export type FinanceTransaction = typeof financeTransactions.$inferSelect;
 export type InsertFinanceTransaction = typeof financeTransactions.$inferInsert;
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = typeof events.$inferInsert;
+export type News = typeof news.$inferSelect;
+export type InsertNews = typeof news.$inferInsert;

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { assets, documents, financeTransactions, InsertUser, members, users } from "../drizzle/schema";
+import { assets, documents, events, financeTransactions, InsertUser, members, news, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -95,4 +95,16 @@ export async function getFinanceSummary() {
     transactionCount: rows.length,
     pendingCount: rows.filter(row => row.status === "Menunggu").length,
   };
+}
+
+export async function listEvents() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(events).orderBy(desc(events.eventDate));
+}
+
+export async function listNews() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(news).orderBy(desc(news.publishedAt));
 }
