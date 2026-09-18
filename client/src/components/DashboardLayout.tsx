@@ -13,9 +13,9 @@ const menuGroups = [
   { label: "Workspace", items: [
     { icon: LayoutDashboard, label: "Ringkasan", path: "/" },
     { icon: Users, label: "Anggota", path: "/members" },
-    { icon: FileText, label: "Surat menyurat", path: "/letters" },
+    { icon: FileText, label: "Surat menyurat", path: "/letters", managementOnly: true },
     { icon: FolderKanban, label: "Proposal", path: "/proposals" },
-    { icon: BarChart3, label: "Laporan", path: "/reports" },
+    { icon: BarChart3, label: "Laporan", path: "/reports", managementOnly: true },
     { icon: Package, label: "Aset organisasi", path: "/assets" },
     { icon: DollarSign, label: "Keuangan", path: "/finance", financeOnly: true },
     { icon: CalendarDays, label: "Jadwal kegiatan", path: "/activities" },
@@ -71,7 +71,7 @@ function DashboardSidebar({ displayName, initials, userEmail, userRole, onLogout
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2 py-3">
-        {menuGroups.map(group => <div key={group.label} className="mb-6"><p className={cn("px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9da39c]", collapsed && "text-center text-[8px]")}>{collapsed ? "•" : group.label}</p><SidebarMenu>{group.items.filter(item => !item.financeOnly || userRole === "admin" || userRole === "treasurer").map(item => { const active = location === item.path; return <SidebarMenuItem key={item.path}><SidebarMenuButton isActive={active} onClick={() => navigate(item.path)} tooltip={item.label} className={cn("h-10 rounded-xl px-3 text-[#697169] hover:bg-white/80 hover:text-[#243b32]", active && "bg-white font-semibold text-[#243b32] shadow-[0_3px_12px_rgba(36,59,50,0.07)]") }><item.icon className={cn("h-[17px] w-[17px]", active && "text-[#ed8c6f]")} /><span>{item.label}</span>{item.path === "/letters" && <span className="ml-auto rounded-full bg-[#f8d8cc] px-1.5 py-0.5 text-[9px] font-bold text-[#9b523c]">3</span>}</SidebarMenuButton></SidebarMenuItem>; })}</SidebarMenu></div>)}
+        {menuGroups.map(group => <div key={group.label} className="mb-6"><p className={cn("px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9da39c]", collapsed && "text-center text-[8px]")}>{collapsed ? "•" : group.label}</p><SidebarMenu>{group.items.filter(item => (!item.financeOnly || ["admin", "treasurer", "chairman", "vice_chair"].includes(userRole || "")) && (!item.managementOnly || !["member", "user"].includes(userRole || ""))).map(item => { const active = location === item.path; return <SidebarMenuItem key={item.path}><SidebarMenuButton isActive={active} onClick={() => navigate(item.path)} tooltip={item.label} className={cn("h-10 rounded-xl px-3 text-[#697169] hover:bg-white/80 hover:text-[#243b32]", active && "bg-white font-semibold text-[#243b32] shadow-[0_3px_12px_rgba(36,59,50,0.07)]") }><item.icon className={cn("h-[17px] w-[17px]", active && "text-[#ed8c6f]")} /><span>{item.label}</span>{item.path === "/letters" && <span className="ml-auto rounded-full bg-[#f8d8cc] px-1.5 py-0.5 text-[9px] font-bold text-[#9b523c]">3</span>}</SidebarMenuButton></SidebarMenuItem>; })}</SidebarMenu></div>)}
       </SidebarContent>
       <SidebarFooter className="p-3">
         {!collapsed && <div className="mb-3 rounded-2xl bg-[#243b32] p-3.5 text-white"><div className="mb-2 flex items-center gap-2"><Archive className="h-4 w-4 text-[#f2b49b]" /><span className="text-xs font-semibold">Ruang kolaborasi</span></div><p className="text-[11px] leading-4 text-white/60">Kelola kegiatan desa dengan lebih rapi dan transparan.</p></div>}

@@ -67,4 +67,14 @@ describe("karang taruna workspace procedures", () => {
     expect(news.length).toBeGreaterThan(0);
     expect(news[0]).toHaveProperty("excerpt");
   });
+
+  it("restricts role management to administrators", async () => {
+    const publicCaller = appRouter.createCaller(createPublicContext());
+    await expect(publicCaller.users.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    const treasurerCaller = appRouter.createCaller(createUserContext("treasurer"));
+    await expect(treasurerCaller.users.list()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const adminCaller = appRouter.createCaller(createUserContext("admin"));
+    const accounts = await adminCaller.users.list();
+    expect(Array.isArray(accounts)).toBe(true);
+  });
 });

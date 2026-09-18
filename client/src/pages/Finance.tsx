@@ -22,7 +22,7 @@ function Metric({ label, value, note, icon: Icon, tone }: { label: string; value
 
 export default function FinancePage() {
   const { user } = useAuth();
-  const canView = user?.role === "admin" || user?.role === "treasurer";
+  const canView = ["admin", "treasurer", "chairman", "vice_chair"].includes(user?.role || "");
   const { data: summary } = trpc.finance.summary.useQuery(undefined, { enabled: canView });
   const { data: rows = [] } = trpc.finance.list.useQuery(undefined, { enabled: canView });
   const utils = trpc.useUtils();

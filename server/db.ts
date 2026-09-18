@@ -53,6 +53,18 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function listUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: users.id, openId: users.openId, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt }).from(users).orderBy(desc(users.createdAt));
+}
+
+export async function updateUserRole(id: number, role: "user" | "admin" | "chairman" | "vice_chair" | "treasurer" | "secretary" | "member") {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ role }).where(eq(users.id, id));
+}
+
 export async function listMembers() {
   const db = await getDb();
   if (!db) return [];

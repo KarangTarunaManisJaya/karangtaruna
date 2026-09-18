@@ -3,13 +3,17 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assets, documents, events, financeTransactions, members, news } from "../drizzle/schema";
-import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMembers, listNews } from "./db";
+import { getDashboardCounts, getDb, getFinanceSummary, listAssets, listDocuments, listEvents, listFinanceTransactions, listMembers, listNews, listUsers, updateUserRole } from "./db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
 
 const financeProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin" && ctx.user.role !== "treasurer") throw new TRPCError({ code: "FORBIDDEN", message: "Akses keuangan hanya untuk Administrator dan Bendahara." });
+  if (!["admin", "treasurer", "chairman", "vice_chair"].includes(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Akses keuangan hanya untuk Administrator, Bendahara, Ketua, dan Wakil Ketua." });
+  return next();
+});
+const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Pengaturan jabatan hanya dapat diubah Administrator." });
   return next();
 });
 
@@ -56,6 +60,10 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+  users: router({
+    list: adminProcedure.query(async () => listUsers()),
+    setRole: adminProcedure.input(z.object({ id: z.number().int().positive(), role: z.enum(["user", "admin", "chairman", "vice_chair", "treasurer", "secretary", "member"]) })).mutation(async ({ input }) => { await updateUserRole(input.id, input.role); return { success: true }; }),
   }),
   dashboard: router({
     summary: publicProcedure.query(async () => {
