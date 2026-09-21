@@ -50,6 +50,13 @@
       "when": 1789956110839,
       "tag": "0006_gifted_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1789956908126,
+      "tag": "0007_rare_sharon_carter",
+      "breakpoints": true
     }
   ]
 }

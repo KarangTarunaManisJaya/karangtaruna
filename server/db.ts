@@ -131,7 +131,7 @@ export async function listAssets() {
   return db.select().from(assets).orderBy(desc(assets.createdAt));
 }
 
-export async function updateDocument(id: number, values: { title?: string; documentCategory?: string; documentNumber?: string; description?: string; recipientName?: string; eventDate?: Date; eventTime?: string; eventLocation?: string }) {
+export async function updateDocument(id: number, values: { title?: string; documentCategory?: string; documentNumber?: string; description?: string; recipientName?: string; eventDate?: Date; eventTime?: string; eventLocation?: string; signerLeftName?: string; signerLeftRole?: string; signerRightName?: string; signerRightRole?: string; copies?: string }) {
   const db = await getDb();
   if (!db) return;
   await db.update(documents).set(values).where(eq(documents.id, id));

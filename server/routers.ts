@@ -126,13 +126,13 @@ export const appRouter = router({
         return fallbackDocuments;
       }
     }),
-    create: protectedProcedure.input(z.object({ documentType: z.enum(["Surat", "Proposal", "Laporan"]), documentCategory: z.string().min(2).default("Umum"), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional() })).mutation(async ({ input, ctx }) => {
+    create: protectedProcedure.input(z.object({ documentType: z.enum(["Surat", "Proposal", "Laporan"]), documentCategory: z.string().min(2).default("Umum"), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional(), signerLeftName: z.string().optional(), signerLeftRole: z.string().optional(), signerRightName: z.string().optional(), signerRightRole: z.string().optional(), copies: z.string().optional() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { success: true, demo: true };
       await db.insert(documents).values({ ...input, documentNumber: input.documentNumber || createDocumentNumber(input.documentCategory), ownerName: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
-    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), title: z.string().min(3), documentCategory: z.string().min(2).optional(), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateDocument(id, values); return { success: true }; }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), title: z.string().min(3), documentCategory: z.string().min(2).optional(), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional(), signerLeftName: z.string().optional(), signerLeftRole: z.string().optional(), signerRightName: z.string().optional(), signerRightRole: z.string().optional(), copies: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateDocument(id, values); return { success: true }; }),
     delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteDocument(input.id); return { success: true }; }),
   }),
   assets: router({
