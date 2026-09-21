@@ -43,6 +43,13 @@
       "when": 1789703966939,
       "tag": "0005_true_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1789956110839,
+      "tag": "0006_gifted_puma",
+      "breakpoints": true
     }
   ]
 }

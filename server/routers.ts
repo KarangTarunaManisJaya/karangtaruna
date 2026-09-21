@@ -17,6 +17,12 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (!["admin", "chairman"].includes(ctx.user.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Pengaturan jabatan hanya dapat diubah Administrator atau Ketua." });
   return next();
 });
+const documentPrefix: Record<string, string> = { "Undangan anggota": "UND", "Proposal kegiatan": "PRP", Sekretariat: "SKT", Permohonan: "PMH", "Laporan kegiatan": "LAP", Umum: "DOC" };
+function createDocumentNumber(category: string) {
+  const date = new Date();
+  const month = new Intl.DateTimeFormat("id-ID", { month: "2-digit" }).format(date);
+  return `${documentPrefix[category] || "DOC"}/${String(date.getFullYear()).slice(-2)}${month}/MJ/${String(Date.now()).slice(-5)}`;
+}
 
 const fallbackMembers = [
   { id: 1, memberCode: "MJ-001", name: "Rizky Maulana", gender: "Laki-laki", position: "Ketua", status: "Aktif", phone: "0812 3456 7890", address: "Dusun Manis Jaya" },
@@ -120,13 +126,13 @@ export const appRouter = router({
         return fallbackDocuments;
       }
     }),
-    create: protectedProcedure.input(z.object({ documentType: z.enum(["Surat", "Proposal", "Laporan"]), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional() })).mutation(async ({ input, ctx }) => {
+    create: protectedProcedure.input(z.object({ documentType: z.enum(["Surat", "Proposal", "Laporan"]), documentCategory: z.string().min(2).default("Umum"), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { success: true, demo: true };
-      await db.insert(documents).values({ ...input, ownerName: ctx.user.name ?? "Pengurus" });
+      await db.insert(documents).values({ ...input, documentNumber: input.documentNumber || createDocumentNumber(input.documentCategory), ownerName: ctx.user.name ?? "Pengurus" });
       return { success: true };
     }),
-    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), title: z.string().min(3), documentNumber: z.string().optional(), description: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateDocument(id, values); return { success: true }; }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), title: z.string().min(3), documentCategory: z.string().min(2).optional(), documentNumber: z.string().optional(), description: z.string().optional(), recipientName: z.string().optional(), eventDate: z.date().optional(), eventTime: z.string().optional(), eventLocation: z.string().optional() })).mutation(async ({ input }) => { const { id, ...values } = input; await updateDocument(id, values); return { success: true }; }),
     delete: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => { await deleteDocument(input.id); return { success: true }; }),
   }),
   assets: router({
