@@ -44,6 +44,7 @@ export const documents = mysqlTable("documents", {
   signerLeftRole: varchar("signerLeftRole", { length: 100 }),
   signerRightName: varchar("signerRightName", { length: 160 }),
   signerRightRole: varchar("signerRightRole", { length: 100 }),
+  signers: text("signers"),
   copies: text("copies"),
   ownerName: varchar("ownerName", { length: 160 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
