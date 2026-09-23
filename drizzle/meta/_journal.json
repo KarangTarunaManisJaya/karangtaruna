@@ -64,6 +64,13 @@
       "when": 1790040201395,
       "tag": "0008_curious_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1790136498504,
+      "tag": "0009_cool_barracuda",
+      "breakpoints": true
     }
   ]
 }
