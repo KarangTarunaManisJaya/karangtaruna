@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8f88] sm:block">Manis Jaya / Workspace</span>
           </div>
           <div className="flex items-center gap-2.5">
-            {!user && <Button size="sm" onClick={() => window.location.assign("/login")} className="h-9 rounded-xl bg-[#243b32] px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-[#1b3028]"><LogIn className="mr-2 h-3.5 w-3.5" />Masuk</Button>}
+            {!user && <Button size="sm" onClick={() => window.location.assign(`${import.meta.env.BASE_URL}login`)} className="h-9 rounded-xl bg-[#243b32] px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-[#1b3028]"><LogIn className="mr-2 h-3.5 w-3.5" />Masuk</Button>}
             <div className="hidden h-8 w-px bg-[#deddd8] md:block" />
             <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1.5 shadow-[0_2px_12px_rgba(24,35,27,0.04)]">
               <div className="h-7 w-7 rounded-full bg-[#f2b49b] text-center text-[10px] font-bold leading-7 text-[#5b2e22]">{initials}</div>
