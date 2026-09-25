@@ -42,7 +42,7 @@ function ManagementGate({ children }: { children: React.ReactNode }) {
 
 function App() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><DashboardLayout><WouterRouter base={base}><Router /></WouterRouter></DashboardLayout></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><WouterRouter base={base}><DashboardLayout><Router /></DashboardLayout></WouterRouter></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;
