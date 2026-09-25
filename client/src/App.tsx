@@ -18,6 +18,7 @@ function Router() {
   return <Switch>
     <Route path="/login" component={MemberLoginPage} />
     <Route path="/" component={Home} />
+<Route path="/karangtaruna/" component={Home} />
     <Route path="/members" component={MembersPage} />
     <Route path="/letters"><ManagementGate><DocumentsPage type="Surat" /></ManagementGate></Route>
     <Route path="/proposals"><ManagementGate><DocumentsPage type="Proposal" /></ManagementGate></Route>
