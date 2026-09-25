@@ -154,7 +154,7 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 const isGithubPages = process.env.VITE_GITHUB_PAGES === "true";
 export default defineConfig({
   plugins,
-  base: isGithubPages ? "./" : "/",
+  base: isGithubPages ? "/karangtaruna/" : "/"
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
